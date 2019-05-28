@@ -1,4 +1,5 @@
 (sym_lib_table
   (lib (name M5Hackfon_v01-rescue)(type Legacy)(uri ${KIPRJMOD}/M5Hackfon_v01-rescue.lib)(options "")(descr ""))
   (lib (name M5Multimeter_v01-rescue)(type Legacy)(uri ${KIPRJMOD}/M5Multimeter_v01-rescue.lib)(options "")(descr ""))
+  (lib (name M5Multimeter-rescue)(type Legacy)(uri ${KIPRJMOD}/M5Multimeter-rescue.lib)(options "")(descr ""))
 )
