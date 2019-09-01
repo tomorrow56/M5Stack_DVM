@@ -1,4 +1,4 @@
-M5Stack/*
+/*
  An example analogue meter using a ILI9341 TFT LCD screen
 
  Needs Font 2 (also Font 4 if using large scale label)
