@@ -176,7 +176,8 @@ void loop() {
     }else{
       M5.Lcd.setTextColor(TFT_RED, TFT_WHITE);
     }
-    M5.Lcd.drawRightString(String(VdcCalc), M_SIZE*40, M_SIZE*(119 - 20), 2);
+    M5.Lcd.drawRightString("CH1: " + String(VdcCalc), M_SIZE*56, M_SIZE*(119 - 26), 2);
+    M5.Lcd.drawRightString("CH2: " + String(VdcCalc), M_SIZE*56, M_SIZE*(119 - 12), 2);
 
     if(VdcDisp > VdcLCD + 1){
       VdcLCD = VdcLCD + 1;
@@ -186,7 +187,7 @@ void loop() {
 
     M5.update();
 
-    Serial.println(String(Vread) + ", " + String(VdcCalc) + "Vdc");
+    Serial.println("CH1: " + String(Vread) + ", " + String(VdcCalc) + "Vdc");
 
     if (M5.BtnA.wasPressed()) {
       Hold  = !Hold;
