@@ -1,4 +1,5 @@
-M5Stack/*
+//M5Stack
+/*
  An example analogue meter using a ILI9341 TFT LCD screen
 
  Needs Font 2 (also Font 4 if using large scale label)
@@ -17,8 +18,9 @@ Updated by Bodmer for variable meter size
 #define M_SIZE 1.3333
 
 #include <M5Stack.h>
+#include <Wire.h>
 
-#include "M5StackUpdater.h"
+//#include "M5StackUpdater.h"
 
 #define TFT_GREY 0x5AEB
 
@@ -58,12 +60,15 @@ uint8_t RANGE = 0;
 void setup(void) {
   M5.begin();
 
+/*
   if(digitalRead(BUTTON_A_PIN) == 0) {
     Serial.println("Will Load menu binary");
     updateFromFS(SD);
     ESP.restart();
   }
+*/
 
+  dacWrite(25, 0); // Speaker OFF
   pinMode(RANGE_PIN1, OUTPUT);
   pinMode(RANGE_PIN2, OUTPUT);
   pinMode(BAT_CHK, OUTPUT);
@@ -364,4 +369,3 @@ void plotNeedle(int value, byte ms_delay)
     delay(ms_delay);
   }
 }
-
