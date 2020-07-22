@@ -28,7 +28,9 @@ Updated by Bodmer for variable meter size
 #define ADC_PIN1        36
 #define RANGE_PIN1      16
 #define RANGE_PIN2      17
-#define BAT_CHK         13
+//#define BAT_CHK         13
+#define RANGE_PIN1_2    12
+#define RANGE_PIN2_2    13
 
 #define NOTE 1000
 
@@ -44,18 +46,23 @@ float TERM_RES1 = 300;
 float TERM_RES2 = 50;
 float TERM_RES3 = 30;
 float PARA_RES;
+float PARA_RES_2;
 
 float Vdc = 0;
+float Vdc_2 = 0;
 float VdcCalc;
+float VdcCalc_2;
 float VdcDisp = 0;
 uint8_t VdcLCD = 0;
 uint16_t interval = 10;  // Update interval
 uint16_t Vread;
+uint16_t Vread_2;
 
 String MeterLabel[5] = {"0", "1", "2", "3", "4"};
 boolean RangeChange = false;
 boolean Hold = false;
 uint8_t RANGE = 0;
+uint8_t RANGE_2 = 0;
 
 void setup(void) {
   M5.begin();
@@ -71,11 +78,15 @@ void setup(void) {
   dacWrite(25, 0); // Speaker OFF
   pinMode(RANGE_PIN1, OUTPUT);
   pinMode(RANGE_PIN2, OUTPUT);
-  pinMode(BAT_CHK, OUTPUT);
+  //pinMode(BAT_CHK, OUTPUT);
+  pinMode(RANGE_PIN1_2, OUTPUT);
+  pinMode(RANGE_PIN2_2, OUTPUT);
 
   digitalWrite(RANGE_PIN1, LOW); 
   digitalWrite(RANGE_PIN2, LOW); 
-  digitalWrite(BAT_CHK, LOW); 
+  //digitalWrite(BAT_CHK, LOW); 
+  digitalWrite(RANGE_PIN1_2, LOW); 
+  digitalWrite(RANGE_PIN2_2, LOW); 
   
   // M5.Lcd.setRotation(1);
   // Serial.begin(57600); // For debug
@@ -95,6 +106,7 @@ void loop() {
 
     if(Hold == false){
       Vread = analogRead(ADC_PIN0);
+      Vread_2 = analogRead(ADC_PIN1);
     }
 
 /* 　実測データ
@@ -122,6 +134,24 @@ void loop() {
     }else{
       Vdc = 3.2;
     }
+    
+    /* add CH2 */
+    if(Vread_2 < 5){
+      Vdc_2 = 0;
+    }else if(Vread_2 <= 1084){
+      Vdc_2 = 0.11 + (0.89 / 1084) * Vread_2;
+    }else if(Vread_2 <= 2303){
+      Vdc_2 = 1.0 + (1.0 / (2303 - 1084)) * (Vread_2 - 1084);
+    }else if(Vread_2 <= 3179){
+      Vdc_2 = 2.0 + (0.7 / (3179 - 2303)) * (Vread_2 - 2303);
+    }else if(Vread_2 <= 3659){
+      Vdc_2 = 2.7 + (0.3 / (3659 - 3179)) * (Vread_2 - 3179);
+    }else if(Vread_2 <= 4071){
+      Vdc_2 = 3.0 + (0.2 / (4071 - 3659)) * (Vread_2 - 3659);
+    }else{
+      Vdc_2 = 3.2;
+    }
+    /* add CH2 */
 
     if(Vdc > 3.0 && RANGE < 2){
       RANGE = RANGE + 1;
@@ -133,6 +163,18 @@ void loop() {
       RangeChange = true;
     }
 
+    /* add CH2 */
+    if(Vdc_2 > 3.0 && RANGE_2 < 2){
+      RANGE_2 = RANGE_2 + 1;
+      //RangeChange = true;
+    }
+
+    if(Vdc_2 < 0.75 && RANGE_2 > 0){
+      RANGE_2 = RANGE_2 - 1;
+      //RangeChange = true;
+    }
+    /* add CH2 */
+
     switch (RANGE){
       case 0:
         PARA_RES = TERM_RES1;
@@ -142,7 +184,7 @@ void loop() {
         MeterLabel[3] = "3";
         MeterLabel[4] = "4";
         digitalWrite(RANGE_PIN1, LOW); 
-        digitalWrite(RANGE_PIN1, LOW); 
+        digitalWrite(RANGE_PIN2, LOW); 
         VdcDisp = VdcCalc * (100 / 4);
         break;
       case 1:
@@ -169,15 +211,57 @@ void loop() {
         break;
     }
 
+    /* add CH2 */
+    switch (RANGE_2){
+      case 0:
+        PARA_RES_2 = TERM_RES1;
+        //MeterLabel[0] = "0";
+        //MeterLabel[1] = "1";
+        //MeterLabel[2] = "2";
+        //MeterLabel[3] = "3";
+        //MeterLabel[4] = "4";
+        digitalWrite(RANGE_PIN1_2, LOW); 
+        digitalWrite(RANGE_PIN2_2, LOW); 
+        //VdcDisp = VdcCalc * (100 / 4);
+        break;
+      case 1:
+        PARA_RES_2 = 1/ ((1 / TERM_RES1) + (1 / TERM_RES2));
+        //MeterLabel[0] = "0";
+        //MeterLabel[1] = "2.5";
+        //MeterLabel[2] = "5";
+        //MeterLabel[3] = "7.5";
+        //MeterLabel[4] = "10";
+        digitalWrite(RANGE_PIN1_2, HIGH); 
+        digitalWrite(RANGE_PIN2_2, LOW); 
+        //VdcDisp = VdcCalc * (100 / 10);
+        break;
+      case 2:
+        PARA_RES_2 = 1/ ((1 / TERM_RES1) + (1 / TERM_RES2) + (1 / TERM_RES3));
+        //MeterLabel[0] = "0";
+        //MeterLabel[1] = "5";
+        //MeterLabel[2] = "10";
+        //MeterLabel[3] = "15";
+        //MeterLabel[4] = "20";
+        digitalWrite(RANGE_PIN1_2, HIGH); 
+        digitalWrite(RANGE_PIN2_2, HIGH); 
+        //VdcDisp = VdcCalc * (100 / 20);
+        break;
+    }
+    /* add CH2 */
+
     VdcCalc = Vdc / PARA_RES * (SERIES_RES + PARA_RES); 
+    VdcCalc_2 = Vdc_2 / PARA_RES_2 * (SERIES_RES + PARA_RES_2); 
 
     if(VdcCalc <= 20.0){
       M5.Lcd.setTextColor(TFT_BLACK, TFT_WHITE);
     }else{
       M5.Lcd.setTextColor(TFT_RED, TFT_WHITE);
     }
-    M5.Lcd.drawRightString("CH1: " + String(VdcCalc), M_SIZE*56, M_SIZE*(119 - 26), 2);
-    M5.Lcd.drawRightString("CH2: " + String(VdcCalc), M_SIZE*56, M_SIZE*(119 - 12), 2);
+    
+    //M5.Lcd.drawRightString("CH1: " + String(VdcCalc), M_SIZE*56, M_SIZE*(119 - 26), 2);
+    //M5.Lcd.drawRightString("CH2: " + String(VdcCalc_2), M_SIZE*56, M_SIZE*(119 - 12), 2);
+    M5.Lcd.drawString("CH1: " + String(VdcCalc) + "  ",   M_SIZE*8, M_SIZE*(119 - 26), 2);
+    M5.Lcd.drawString("CH2: " + String(VdcCalc_2) + "  ", M_SIZE*8, M_SIZE*(119 - 12), 2);
 
     if(VdcDisp > VdcLCD + 1){
       VdcLCD = VdcLCD + 1;
@@ -188,6 +272,7 @@ void loop() {
     M5.update();
 
     Serial.println("CH1: " + String(Vread) + ", " + String(VdcCalc) + "Vdc");
+    Serial.println("CH2: " + String(Vread_2) + ", " + String(VdcCalc_2) + "Vdc");
 
     if (M5.BtnA.wasPressed()) {
       Hold  = !Hold;
