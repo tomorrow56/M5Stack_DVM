@@ -1,4 +1,5 @@
-M5Stack/*
+//M5Stack
+/*
  An example analogue meter using a ILI9341 TFT LCD screen
 
  Needs Font 2 (also Font 4 if using large scale label)
@@ -17,8 +18,9 @@ Updated by Bodmer for variable meter size
 #define M_SIZE 1.3333
 
 #include <M5Stack.h>
+#include <Wire.h>
 
-#include "M5StackUpdater.h"
+//#include "M5StackUpdater.h"
 
 #define TFT_GREY 0x5AEB
 
@@ -26,7 +28,9 @@ Updated by Bodmer for variable meter size
 #define ADC_PIN1        36
 #define RANGE_PIN1      16
 #define RANGE_PIN2      17
-#define BAT_CHK         13
+//#define BAT_CHK         13
+#define RANGE_PIN1_2    12
+#define RANGE_PIN2_2    13
 
 #define NOTE 1000
 
@@ -42,35 +46,47 @@ float TERM_RES1 = 300;
 float TERM_RES2 = 50;
 float TERM_RES3 = 30;
 float PARA_RES;
+float PARA_RES_2;
 
 float Vdc = 0;
+float Vdc_2 = 0;
 float VdcCalc;
+float VdcCalc_2;
 float VdcDisp = 0;
 uint8_t VdcLCD = 0;
 uint16_t interval = 10;  // Update interval
 uint16_t Vread;
+uint16_t Vread_2;
 
 String MeterLabel[5] = {"0", "1", "2", "3", "4"};
 boolean RangeChange = false;
 boolean Hold = false;
 uint8_t RANGE = 0;
+uint8_t RANGE_2 = 0;
 
 void setup(void) {
   M5.begin();
 
+/*
   if(digitalRead(BUTTON_A_PIN) == 0) {
     Serial.println("Will Load menu binary");
     updateFromFS(SD);
     ESP.restart();
   }
+*/
 
+  dacWrite(25, 0); // Speaker OFF
   pinMode(RANGE_PIN1, OUTPUT);
   pinMode(RANGE_PIN2, OUTPUT);
-  pinMode(BAT_CHK, OUTPUT);
+  //pinMode(BAT_CHK, OUTPUT);
+  pinMode(RANGE_PIN1_2, OUTPUT);
+  pinMode(RANGE_PIN2_2, OUTPUT);
 
   digitalWrite(RANGE_PIN1, LOW); 
   digitalWrite(RANGE_PIN2, LOW); 
-  digitalWrite(BAT_CHK, LOW); 
+  //digitalWrite(BAT_CHK, LOW); 
+  digitalWrite(RANGE_PIN1_2, LOW); 
+  digitalWrite(RANGE_PIN2_2, LOW); 
   
   // M5.Lcd.setRotation(1);
   // Serial.begin(57600); // For debug
@@ -90,33 +106,71 @@ void loop() {
 
     if(Hold == false){
       Vread = analogRead(ADC_PIN0);
+      Vread_2 = analogRead(ADC_PIN1);
     }
 
 /* 　実測データ
- *   B2 <= 1084, 0.11+(0.89/1084)*B2
- *   B2 <= 2303, 1+(1/(2303-1084))*(B2-1084)
- *   B2 <= 3179, 2+(0.7/(3179-2303))*(B2-2303)
- *   B2 <= 3659, 2.7+(0.3/(3659-3179))*(B2-3179)
- *   B2 <= 4071, 3+(0.2/(4071-3659))*(B2-3659)
+ *   B2 <= 1084, 0.11 + (0.89/  1084        )* B2
+ *   B2 <= 2303, 1    + (1   / (2303 - 1084))*(B2 - 1084)
+ *   B2 <= 3179, 2    + (0.7 / (3179 - 2303))*(B2 - 2303)
+ *   B2 <= 3659, 2.7  + (0.3 / (3659 - 3179))*(B2 - 3179)
+ *   B2 <= 4071, 3    + (0.2 / (4071 - 3659))*(B2 - 3659)
+ *   3.2
+ */
+ 
+/* 　実測データ(CH1), one more set
+ *   0.2 : 1-4
+ *   B2 <= 992 , 0.11 + (0.89/  992         )* B2
+ *   B2 <= 2197, 1    + (1   / (2197 - 992 ))*(B2 - 992 )
+ *   B2 <= 3071, 2    + (0.7 / (3071 - 2197))*(B2 - 2197)
+ *   B2 <= 3530, 2.7  + (0.3 / (3530 - 3071))*(B2 - 3071)
+ *   B2 <= 3967, 3    + (0.2 / (3967 - 3530))*(B2 - 3530)
  *   3.2
  */
 //    Vdc = Vread * 3.3 / 4096;  // 3.3V range
 
     if(Vread < 5){
       Vdc = 0;
-    }else if(Vread <= 1084){
-      Vdc = 0.11 + (0.89 / 1084) * Vread;
-    }else if(Vread <= 2303){
-      Vdc = 1.0 + (1.0 / (2303 - 1084)) * (Vread - 1084);
-    }else if(Vread <= 3179){
-      Vdc = 2.0 + (0.7 / (3179 - 2303)) * (Vread - 2303);
-    }else if(Vread <= 3659){
-      Vdc = 2.7 + (0.3 / (3659 - 3179)) * (Vread - 3179);
-    }else if(Vread <= 4071){
-      Vdc = 3.0 + (0.2 / (4071 - 3659)) * (Vread - 3659);
+    }else if(Vread <= 992){    // < 1.00 V (= 992)
+      Vdc = 0.2 + (0.8 / (992 - 5 )) * Vread;
+    }else if(Vread <= 2197){    // < 2.00 V (= 2197)
+      Vdc = 1.0 + (1.0 / (2197 - 992)) * (Vread - 992);
+    }else if(Vread <= 3071){    // < 2.70 V (= 3071)
+      Vdc = 2.0 + (0.7 / (3071 - 2197)) * (Vread - 2197);
+    }else if(Vread <= 3530){    // < 3.00 V (= 3530)
+      Vdc = 2.7 + (0.3 / (3530 - 3071)) * (Vread - 3071);
+    }else if(Vread <= 3967){    // < 3.20 V (= 3967)
+      Vdc = 3.0 + (0.2 / (3967 - 3530)) * (Vread - 3530);
     }else{
       Vdc = 3.2;
     }
+
+ /* 　実測データ(CH2, one more set)
+ *   0.01 : 12-16
+ *   B2 <= 1116 , 0.11 + (0.89/  1116         )* B2
+ *   B2 <= 2227, 1    + (1   / (2227 - 1116 ))*(B2 - 1116 )
+ *   B2 <= 3045, 2    + (0.7 / (3045 - 2227))*(B2 - 2227)
+ *   B2 <= 3471, 2.7  + (0.3 / (3471 - 3045))*(B2 - 3045)
+ *   B2 <= 3859, 3    + (0.2 / (3859 - 3471))*(B2 - 3471)
+ *   3.2
+ */
+    /* add CH2 */
+    if(Vread_2 < 17){
+      Vdc_2 = 0;
+    }else if(Vread_2 <= 1116){    // < 1.00 V (= 1116)
+      Vdc_2 = 0.16 + (0.84 / (1116 - 17)) * Vread_2;
+    }else if(Vread_2 <= 2227){    // < 2.00 V (= 2227)
+      Vdc_2 = 1.0 + (1.0 / (2227 - 1116)) * (Vread_2 - 1116);
+    }else if(Vread_2 <= 3045){    // < 2.70 V (= 3045)
+      Vdc_2 = 2.0 + (0.7 / (3045 - 2227)) * (Vread_2 - 2227);
+    }else if(Vread_2 <= 3471){    // < 3.00 V (= 3471)
+      Vdc_2 = 2.7 + (0.3 / (3471 - 3045)) * (Vread_2 - 3045);
+    }else if(Vread_2 <= 3859){    // < 3.20 V (= 3859)
+      Vdc_2 = 3.0 + (0.2 / (3859 - 3471)) * (Vread_2 - 3471);
+    }else{
+      Vdc_2 = 3.2;
+    }
+    /* add CH2 */
 
     if(Vdc > 3.0 && RANGE < 2){
       RANGE = RANGE + 1;
@@ -127,6 +181,18 @@ void loop() {
       RANGE = RANGE - 1;
       RangeChange = true;
     }
+    
+    /* add CH2 */
+    if(Vdc_2 > 3.0 && RANGE_2 < 2){
+      RANGE_2 = RANGE_2 + 1;
+      //RangeChange = true;
+    }
+
+    if(Vdc_2 < 0.75 && RANGE_2 > 0){
+      RANGE_2 = RANGE_2 - 1;
+      //RangeChange = true;
+    }
+    /* add CH2 */
 
     switch (RANGE){
       case 0:
@@ -137,7 +203,7 @@ void loop() {
         MeterLabel[3] = "3";
         MeterLabel[4] = "4";
         digitalWrite(RANGE_PIN1, LOW); 
-        digitalWrite(RANGE_PIN1, LOW); 
+        digitalWrite(RANGE_PIN2, LOW); 
         VdcDisp = VdcCalc * (100 / 4);
         break;
       case 1:
@@ -164,14 +230,57 @@ void loop() {
         break;
     }
 
+    /* add CH2 */
+    switch (RANGE_2){
+      case 0:
+        PARA_RES_2 = TERM_RES1;
+        //MeterLabel[0] = "0";
+        //MeterLabel[1] = "1";
+        //MeterLabel[2] = "2";
+        //MeterLabel[3] = "3";
+        //MeterLabel[4] = "4";
+        digitalWrite(RANGE_PIN1_2, LOW); 
+        digitalWrite(RANGE_PIN2_2, LOW); 
+        //VdcDisp = VdcCalc * (100 / 4);
+        break;
+      case 1:
+        PARA_RES_2 = 1/ ((1 / TERM_RES1) + (1 / TERM_RES2));
+        //MeterLabel[0] = "0";
+        //MeterLabel[1] = "2.5";
+        //MeterLabel[2] = "5";
+        //MeterLabel[3] = "7.5";
+        //MeterLabel[4] = "10";
+        digitalWrite(RANGE_PIN1_2, HIGH); 
+        digitalWrite(RANGE_PIN2_2, LOW); 
+        //VdcDisp = VdcCalc * (100 / 10);
+        break;
+      case 2:
+        PARA_RES_2 = 1/ ((1 / TERM_RES1) + (1 / TERM_RES2) + (1 / TERM_RES3));
+        //MeterLabel[0] = "0";
+        //MeterLabel[1] = "5";
+        //MeterLabel[2] = "10";
+        //MeterLabel[3] = "15";
+        //MeterLabel[4] = "20";
+        digitalWrite(RANGE_PIN1_2, HIGH); 
+        digitalWrite(RANGE_PIN2_2, HIGH); 
+        //VdcDisp = VdcCalc * (100 / 20);
+        break;
+    }
+    /* add CH2 */
+
     VdcCalc = Vdc / PARA_RES * (SERIES_RES + PARA_RES); 
+    VdcCalc_2 = Vdc_2 / PARA_RES_2 * (SERIES_RES + PARA_RES_2); 
 
     if(VdcCalc <= 20.0){
       M5.Lcd.setTextColor(TFT_BLACK, TFT_WHITE);
     }else{
       M5.Lcd.setTextColor(TFT_RED, TFT_WHITE);
     }
-    M5.Lcd.drawRightString(String(VdcCalc), M_SIZE*40, M_SIZE*(119 - 20), 2);
+    
+    //M5.Lcd.drawRightString("CH1: " + String(VdcCalc), M_SIZE*56, M_SIZE*(119 - 26), 2);
+    //M5.Lcd.drawRightString("CH2: " + String(VdcCalc_2), M_SIZE*56, M_SIZE*(119 - 12), 2);
+    M5.Lcd.drawString("CH1: " + String(VdcCalc) + "  ",   M_SIZE*8, M_SIZE*(119 - 26), 2);
+    M5.Lcd.drawString("CH2: " + String(VdcCalc_2) + "  ", M_SIZE*8, M_SIZE*(119 - 12), 2);
 
     if(VdcDisp > VdcLCD + 1){
       VdcLCD = VdcLCD + 1;
@@ -181,7 +290,8 @@ void loop() {
 
     M5.update();
 
-    Serial.println(String(Vread) + ", " + String(VdcCalc) + "Vdc");
+    Serial.println("CH1: " + String(Vread) + ", " + String(VdcCalc) + "Vdc");
+    Serial.println("CH2: " + String(Vread_2) + ", " + String(VdcCalc_2) + "Vdc");
 
     if (M5.BtnA.wasPressed()) {
       Hold  = !Hold;
@@ -364,4 +474,3 @@ void plotNeedle(int value, byte ms_delay)
     delay(ms_delay);
   }
 }
-
