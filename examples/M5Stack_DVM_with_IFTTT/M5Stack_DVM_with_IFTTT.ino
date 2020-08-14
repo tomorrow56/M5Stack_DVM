@@ -290,7 +290,7 @@ void analogMeter(){
       tl = 8;
     }
 
-    // Recalculate coords incase tick lenght changed
+    // Recalculate cords incase tick length changed
     x0 = sx * (M_SIZE*100 + tl) + M_SIZE*120;
     y0 = sy * (M_SIZE*100 + tl) + M_SIZE*140;
     x1 = sx * M_SIZE*100 + M_SIZE*120;
