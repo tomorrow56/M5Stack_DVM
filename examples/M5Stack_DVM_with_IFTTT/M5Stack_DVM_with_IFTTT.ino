@@ -100,6 +100,11 @@ void setup(void) {
   wifiManager.setDebugOutput(true);
 
   // WiFiManager auto connect setting check
+  M5.Lcd.fillScreen(TFT_BLACK);
+  M5.Lcd.setTextColor(RED);
+  M5.Lcd.setCursor(0, 0);
+  M5.Lcd.println("AP Name: M5StackAP");
+  M5.Lcd.println("IP adrs: 192.168.4.1");
   wifiManager.autoConnect("M5StackAP");
 
   //if you get here you have connected to the WiFi
@@ -381,7 +386,7 @@ void plotNeedle(int value, byte ms_delay){
     M5.Lcd.setTextColor(TFT_BLACK);
     M5.Lcd.drawCentreString("Vdc", M_SIZE*120, M_SIZE*70, 4); // // Comment out to avoid font 4
 
-    // Store new needle end coords for next erase
+    // Store new needle end cords for next erase
     ltx = tx;
     osx = M_SIZE*(sx * 98 + 120);
     osy = M_SIZE*(sy * 98 + 140);
